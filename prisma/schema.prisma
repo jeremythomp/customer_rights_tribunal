@@ -1,0 +1,329 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum UserRole {
+  consumer
+  business
+  adjudicator
+  admin
+}
+
+enum UserStatus {
+  active
+  suspended
+  pending
+}
+
+enum CaseStatus {
+  filed
+  under_review
+  scheduled
+  decided
+  closed
+}
+
+enum DocumentCategory {
+  evidence
+  claim
+  response
+  decision
+}
+
+enum HearingStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+enum NotificationType {
+  case_update
+  hearing_reminder
+  message
+  decision
+}
+
+enum OrderType {
+  final_decision
+  interim_order
+  dismissal
+}
+
+// Models
+model User {
+  id            String    @id @default(uuid()) @db.Uuid
+  email         String    @unique @db.VarChar(255)
+  emailVerified DateTime? @map("email_verified") @db.Timestamptz(6)
+  passwordHash  String    @map("password_hash") @db.VarChar(255)
+  role          UserRole
+  firstName     String?   @map("first_name") @db.VarChar(100)
+  lastName      String?   @map("last_name") @db.VarChar(100)
+  phone         String?   @db.VarChar(20)
+  address       Json?     // Flexible address structure
+  businessName  String?   @map("business_name") @db.VarChar(255) // For business users
+  businessNumber String? @map("business_number") @db.VarChar(50) // For business users
+  verified      Boolean   @default(false)
+  status        UserStatus @default(pending)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  accounts           Account[]
+  sessions           Session[]
+  casesAsClaimant    Case[]            @relation("ClaimantCases")
+  casesAsRespondent  Case[]            @relation("RespondentCases")
+  casesAsAdjudicator Case[]            @relation("AdjudicatorCases")
+  documents          Document[]
+  messagesSent       Message[]          @relation("MessageSender")
+  messageRecipients  MessageRecipient[]
+  notifications      Notification[]
+  caseTimelineEvents CaseTimeline[]
+  orders             Order[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@map("users")
+}
+
+// NextAuth Models
+model Account {
+  id                String  @id @default(uuid()) @db.Uuid
+  userId            String  @map("user_id") @db.Uuid
+  type              String  @db.VarChar(255)
+  provider          String  @db.VarChar(255)
+  providerAccountId String  @map("provider_account_id") @db.VarChar(255)
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String? @db.VarChar(255)
+  scope             String? @db.Text
+  id_token          String? @db.Text
+  session_state     String? @db.Text
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  sessionToken String   @unique @map("session_token") @db.VarChar(255)
+  userId       String   @map("user_id") @db.Uuid
+  expires      DateTime @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String   @db.VarChar(255)
+  token      String   @unique @db.VarChar(255)
+  expires    DateTime @db.Timestamptz(6)
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Case {
+  id            String      @id @default(uuid()) @db.Uuid
+  caseNumber    String      @unique @map("case_number") @db.VarChar(50)
+  claimantId    String      @map("claimant_id") @db.Uuid
+  respondentId  String      @map("respondent_id") @db.Uuid
+  adjudicatorId String?     @map("adjudicator_id") @db.Uuid
+  status        CaseStatus  @default(filed)
+  category      String?     @db.VarChar(100)
+  claimAmount   Decimal?    @map("claim_amount") @db.Decimal(15, 2)
+  description   String?     @db.Text
+  filedDate     DateTime    @default(now()) @map("filed_date") @db.Timestamptz(6)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  claimant      User            @relation("ClaimantCases", fields: [claimantId], references: [id], onDelete: Restrict)
+  respondent    User            @relation("RespondentCases", fields: [respondentId], references: [id], onDelete: Restrict)
+  adjudicator   User?           @relation("AdjudicatorCases", fields: [adjudicatorId], references: [id], onDelete: SetNull)
+  timeline      CaseTimeline[]
+  documents     Document[]
+  hearings      Hearing[]
+  messages      Message[]
+  orders        Order[]
+  relatedNotifications Notification[]
+
+  @@index([caseNumber])
+  @@index([claimantId])
+  @@index([respondentId])
+  @@index([adjudicatorId])
+  @@index([status])
+  @@map("cases")
+}
+
+model CaseTimeline {
+  id          String    @id @default(uuid()) @db.Uuid
+  caseId      String    @map("case_id") @db.Uuid
+  event       String    @db.VarChar(100)
+  eventDate   DateTime  @default(now()) @map("event_date") @db.Timestamptz(6)
+  description String?   @db.Text
+  userId      String?   @map("user_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  case        Case      @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([caseId])
+  @@index([eventDate])
+  @@map("case_timeline")
+}
+
+model Document {
+  id          String           @id @default(uuid()) @db.Uuid
+  caseId      String           @map("case_id") @db.Uuid
+  uploadedBy  String           @map("uploaded_by") @db.Uuid
+  fileName    String           @map("file_name") @db.VarChar(255)
+  fileType    String?          @map("file_type") @db.VarChar(50)
+  fileSize    BigInt?          @map("file_size")
+  filePath    String           @map("file_path") @db.VarChar(500)
+  category    DocumentCategory?
+  description String?          @db.Text
+  uploadedAt   DateTime        @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+
+  // Relations
+  case        Case             @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  uploader    User             @relation(fields: [uploadedBy], references: [id], onDelete: Restrict)
+
+  @@index([caseId])
+  @@index([uploadedBy])
+  @@index([category])
+  @@map("documents")
+}
+
+model Hearing {
+  id            String        @id @default(uuid()) @db.Uuid
+  caseId        String        @map("case_id") @db.Uuid
+  scheduledDate DateTime      @map("scheduled_date") @db.Timestamptz(6)
+  duration      Int?          // Duration in minutes
+  conferenceLink String?       @map("conference_link") @db.VarChar(500)
+  status        HearingStatus @default(scheduled)
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  case          Case          @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@index([scheduledDate])
+  @@index([status])
+  @@map("hearings")
+}
+
+model Message {
+  id        String    @id @default(uuid()) @db.Uuid
+  caseId    String    @map("case_id") @db.Uuid
+  senderId  String    @map("sender_id") @db.Uuid
+  subject   String?   @db.VarChar(255)
+  content   String    @db.Text
+  sentAt    DateTime  @default(now()) @map("sent_at") @db.Timestamptz(6)
+
+  // Relations
+  case            Case                @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  sender          User                @relation("MessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  recipients      MessageRecipient[]
+  attachments     MessageAttachment[]
+
+  @@index([caseId])
+  @@index([senderId])
+  @@map("messages")
+}
+
+model MessageRecipient {
+  id          String    @id @default(uuid()) @db.Uuid
+  messageId   String    @map("message_id") @db.Uuid
+  recipientId String    @map("recipient_id") @db.Uuid
+  read        Boolean   @default(false)
+  readAt      DateTime? @map("read_at") @db.Timestamptz(6)
+
+  // Relations
+  message     Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  recipient   User      @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, recipientId])
+  @@index([messageId])
+  @@index([recipientId])
+  @@map("message_recipients")
+}
+
+model MessageAttachment {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  filePath  String   @map("file_path") @db.VarChar(500)
+  fileName  String   @map("file_name") @db.VarChar(255)
+  fileSize  BigInt?  @map("file_size")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("message_attachments")
+}
+
+model Notification {
+  id            String           @id @default(uuid()) @db.Uuid
+  userId        String           @map("user_id") @db.Uuid
+  type          NotificationType
+  title         String           @db.VarChar(255)
+  message       String           @db.Text
+  relatedCaseId String?          @map("related_case_id") @db.Uuid
+  read          Boolean          @default(false)
+  readAt        DateTime?        @map("read_at") @db.Timestamptz(6)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  // Relations
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  relatedCase   Case?           @relation(fields: [relatedCaseId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model Order {
+  id              String    @id @default(uuid()) @db.Uuid
+  caseId          String    @map("case_id") @db.Uuid
+  adjudicatorId   String    @map("adjudicator_id") @db.Uuid
+  orderNumber     String    @unique @map("order_number") @db.VarChar(50)
+  orderType       OrderType @map("order_type")
+  content         String    @db.Text
+  issuedDate      DateTime  @default(now()) @map("issued_date") @db.Timestamptz(6)
+  effectiveDate  DateTime? @map("effective_date") @db.Timestamptz(6)
+  digitalSignature String?  @map("digital_signature") @db.Text
+  pdfPath         String?   @map("pdf_path") @db.VarChar(500)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  case            Case      @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  adjudicator     User      @relation(fields: [adjudicatorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId])
+  @@index([orderNumber])
+  @@index([adjudicatorId])
+  @@map("orders")
+}

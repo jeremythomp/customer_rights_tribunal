@@ -2,6 +2,36 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Database Setup
+
+This project uses PostgreSQL running in Docker. To start the database:
+
+```bash
+# Start PostgreSQL in Docker
+docker-compose up -d
+
+# To stop the database
+docker-compose down
+
+# To stop and remove all data
+docker-compose down -v
+```
+
+The database will be available at `localhost:5432` with the following default credentials:
+- **Host**: localhost
+- **Port**: 5432
+- **Username**: postgres
+- **Password**: postgres
+- **Database**: customer_rights_tribunal
+
+To connect from your Next.js app, you'll need to create a `.env.local` file in the root directory with:
+
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/customer_rights_tribunal
+```
+
+### Running the Development Server
+
 First, run the development server:
 
 ```bash
