@@ -1,11 +1,9 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { prisma } from "./generated/prisma/client";
 import { verifyPassword, getUserByEmail } from "./auth-utils";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+  secret: process.env.NEXTAUTH_SECRET,
   
   providers: [
     CredentialsProvider({
@@ -62,7 +60,7 @@ export const authOptions: NextAuthOptions = {
   ],
 
   session: {
-    strategy: "database",
+    strategy: "jwt",
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
@@ -76,15 +74,28 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async session({ session, user }) {
-      // Add custom user fields to session
+    async jwt({ token, user }) {
+      // Add custom user fields to JWT token on sign in
+      if (user) {
+        token.id = user.id;
+        token.role = user.role;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.status = user.status;
+        token.verified = user.verified;
+      }
+      return token;
+    },
+
+    async session({ session, token }) {
+      // Add custom user fields to session from JWT token
       if (session.user) {
-        session.user.id = user.id;
-        session.user.role = user.role;
-        session.user.firstName = user.firstName;
-        session.user.lastName = user.lastName;
-        session.user.status = user.status;
-        session.user.verified = user.verified;
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.firstName = token.firstName as string | null;
+        session.user.lastName = token.lastName as string | null;
+        session.user.status = token.status as string;
+        session.user.verified = token.verified as boolean;
       }
       return session;
     },

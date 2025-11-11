@@ -1,5 +1,5 @@
 import { hash, compare } from "bcryptjs";
-import { prisma } from "./generated/prisma/client";
+import { prisma } from "./db";
 import { UserRole, UserStatus } from "./generated/prisma/enums";
 
 /**
