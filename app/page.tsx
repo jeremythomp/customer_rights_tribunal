@@ -1,22 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Rocket, Shield, Eye, Upload, Search, MessageSquare, Gavel } from "lucide-react";
+import { Rocket, Shield, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { FeatureCard } from "@/components/landing/feature-card";
 import { RulingCard } from "@/components/landing/ruling-card";
-import { ProcessStep } from "@/components/landing/process-step";
+import { ProcessTimeline } from "@/components/landing/process-timeline";
 
 export default function Home() {
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col">
       <Navbar />
       
-      <main className="flex-grow">
+      <main className="grow">
         {/* Hero Section */}
         <section className="relative py-16 md:py-24 bg-white dark:bg-gray-900">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-white to-sky-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"></div>
+          <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-white to-sky-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900"></div>
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div className="flex flex-col gap-6 text-left">
@@ -97,7 +97,7 @@ export default function Home() {
                   </p>
                 </div>
                 <Button size="lg" variant="secondary" className="w-full md:w-auto shadow-sm bg-primary/10 text-primary hover:bg-primary/20" asChild>
-                  <Link href="#">View All Rulings</Link>
+                  <Link href="/rulings">View All Rulings</Link>
                 </Button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -134,30 +134,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="w-full md:w-1/2">
-                <div className="grid grid-cols-[auto_1fr] gap-x-6 relative">
-                  <div className="absolute left-[23px] top-12 bottom-12 w-1 bg-gray-200 dark:bg-gray-700"></div>
-                  <ProcessStep
-                    icon={Upload}
-                    title="Step 1: Submit Your Complaint"
-                    description="Fill out the online form with all the necessary details and documentation."
-                  />
-                  <ProcessStep
-                    icon={Search}
-                    title="Step 2: Initial Review"
-                    description="Our team reviews your submission to ensure it falls within our jurisdiction."
-                  />
-                  <ProcessStep
-                    icon={MessageSquare}
-                    title="Step 3: Mediation & Negotiation"
-                    description="We facilitate a discussion between parties to reach a mutually agreeable solution."
-                  />
-                  <ProcessStep
-                    icon={Gavel}
-                    title="Step 4: Tribunal Hearing"
-                    description="If mediation fails, the case proceeds to a formal hearing for a binding decision."
-                    isLast
-                  />
-                </div>
+                <ProcessTimeline />
               </div>
             </div>
           </div>

@@ -15,20 +15,51 @@ A digital platform designed to facilitate online dispute resolution for consumer
 ## Technology Stack
 
 ### Frontend
-- **Framework**: Next.js 15 (React-based)
-- **Styling**: Tailwind CSS
-- **Language**: TypeScript
-- **UI Components**: shadcn/ui (planned)
+- **Framework**: Next.js 16.0.0 (React 19.2.0)
+- **Styling**: Tailwind CSS v4
+- **Language**: TypeScript 5
+- **UI Components**: shadcn/ui
 
 ### Backend
 - **Runtime**: Node.js with Next.js API routes
 - **Database**: PostgreSQL (containerized)
-- **ORM**: Prisma or Drizzle ORM (recommended)
-- **Authentication**: NextAuth.js (planned)
+- **ORM**: Prisma 6.19.0
+- **Authentication**: NextAuth.js 4.24.13
 
 ### Infrastructure
 - **Containerization**: Docker & Docker Compose
 - **Version Control**: Git
+
+## AI Development Guidelines
+
+**IMPORTANT FOR AI ASSISTANTS WORKING ON THIS PROJECT:**
+
+### Next.js Development Requirements
+1. **ALWAYS** initialize the Next.js MCP server at the start of each session:
+   ```
+   mcp_next-devtools_init({ project_path: "/Users/jeremythompson/Documents/GitHub/customer_rights_tribunal" })
+   ```
+
+2. **ALWAYS** use `mcp_next-devtools_nextjs_docs` for ANY Next.js-related questions:
+   - Use `action: "get"` with the documentation path from the llms.txt index
+   - **NEVER** rely on training data for Next.js concepts
+   - Check documentation BEFORE implementing any Next.js features
+
+3. **NEVER** implement Next.js features from memory - query docs first
+
+4. This project uses **Next.js 16.0.0** with these important conventions:
+   - Use `proxy.ts` (NOT `middleware.ts` - deprecated in v16)
+   - Export proxy functions as `export function proxy()` or `export const proxy`
+   - Server Components by default
+   - App Router file conventions
+
+### Available MCP Tools
+- `mcp_next-devtools_init` - Initialize Next.js documentation
+- `mcp_next-devtools_nextjs_docs` - Query Next.js documentation
+- `mcp_next-devtools_nextjs_runtime` - Debug running dev server
+- `mcp_next-devtools_browser_eval` - Browser automation testing
+- `mcp_next-devtools_upgrade_nextjs_16` - Upgrade guide
+- `mcp_next-devtools_enable_cache_components` - Cache Components setup
 
 ## System Architecture
 

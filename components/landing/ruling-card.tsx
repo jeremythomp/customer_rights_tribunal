@@ -8,7 +8,7 @@ interface RulingCardProps {
   href?: string;
 }
 
-export function RulingCard({ caseNumber, title, description, href = "#" }: RulingCardProps) {
+export function RulingCard({ caseNumber, title, description, href = "/rulings" }: RulingCardProps) {
   return (
     <div className="flex flex-col gap-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex flex-col gap-2">
